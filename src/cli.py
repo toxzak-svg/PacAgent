@@ -10,7 +10,43 @@ import os
 import sys
 from typing import Dict, Any
 from .agent_lock import AgentLock
-from .keychain import store_key, get_key, list_keys, register_key, delete_key
+from .keychain import (
+    store_key, get_key, list_keys, register_key, delete_key,
+    KeyNotFoundError, KeychainAccessError, KeychainStorageError,
+    KeychainDeletionError, InvalidKeyNameError
+)
+from .exceptions import (
+    BackpackError,
+    AgentLockNotFoundError,
+    AgentLockCorruptedError,
+    AgentLockReadError,
+    AgentLockWriteError,
+    InvalidPathError,
+    ValidationError,
+    ScriptExecutionError
+)
+
+def handle_error(e: Exception, exit_code: int = 1) -> None:
+    """
+    Handle and display errors in a user-friendly way.
+    
+    Args:
+        e: The exception to handle
+        exit_code: Exit code to use (default: 1)
+    """
+    if isinstance(e, BackpackError):
+        click.echo(click.style(f"Error: {e.message}", fg="red"), err=True)
+        if e.details:
+            click.echo(click.style(f"  {e.details}", fg="yellow"), err=True)
+    elif isinstance(e, click.ClickException):
+        raise e
+    else:
+        click.echo(click.style(f"Unexpected error: {str(e)}", fg="red"), err=True)
+        if hasattr(e, '__cause__') and e.__cause__:
+            click.echo(click.style(f"  Caused by: {str(e.__cause__)}", fg="yellow"), err=True)
+    
+    sys.exit(exit_code)
+
 
 @click.group()
 def cli():
@@ -33,19 +69,39 @@ def init(credentials, personality):
     and personality configuration. This file can be committed to version
     control and shared with your team.
     """
-    creds = {}
-    if credentials:
-        for cred in credentials.split(','):
-            creds[cred.strip()] = f"placeholder_{cred.strip().lower()}"
-    
-    personality_data = {
-        "system_prompt": personality or "You are a helpful AI assistant.",
-        "tone": "professional"
-    }
-    
-    agent_lock = AgentLock()
-    agent_lock.create(creds, personality_data)
-    click.echo(f"Created agent.lock with {len(creds)} credential placeholders")
+    try:
+        creds = {}
+        if credentials:
+            for cred in credentials.split(','):
+                cred_name = cred.strip()
+                if not cred_name:
+                    continue
+                if not cred_name.replace('_', '').isalnum():
+                    raise ValidationError(
+                        f"Invalid credential name: {cred_name}",
+                        "Credential names must contain only alphanumeric characters and underscores"
+                    )
+                creds[cred_name] = f"placeholder_{cred_name.lower()}"
+        
+        personality_data = {
+            "system_prompt": personality or "You are a helpful AI assistant.",
+            "tone": "professional"
+        }
+        
+        agent_lock = AgentLock()
+        
+        # Check if file already exists
+        if os.path.exists(agent_lock.file_path):
+            if not click.confirm(f"agent.lock already exists. Overwrite it?"):
+                click.echo("Cancelled.")
+                return
+        
+        agent_lock.create(creds, personality_data)
+        click.echo(click.style(f"✓ Created agent.lock with {len(creds)} credential placeholders", fg="green"))
+    except BackpackError as e:
+        handle_error(e)
+    except Exception as e:
+        handle_error(e)
 
 @cli.command()
 @click.argument('script_path')
@@ -107,9 +163,27 @@ def add_key(key_name, value):
     Stores a credential in the OS keychain for later use by agents.
     The value is prompted securely (hidden input).
     """
-    store_key(key_name, value)
-    register_key(key_name)
-    click.echo(f"Added {key_name} to vault")
+    try:
+        if not value or not value.strip():
+            raise ValidationError(
+                "Key value cannot be empty",
+                "Please provide a non-empty value"
+            )
+        
+        # Check if key already exists
+        existing_key = get_key(key_name)
+        if existing_key:
+            if not click.confirm(f"Key '{key_name}' already exists. Overwrite it?"):
+                click.echo("Cancelled.")
+                return
+        
+        store_key(key_name, value)
+        register_key(key_name)
+        click.echo(click.style(f"✓ Added {key_name} to vault", fg="green"))
+    except (InvalidKeyNameError, KeychainStorageError, ValidationError) as e:
+        handle_error(e)
+    except Exception as e:
+        handle_error(e)
 
 @key.command('list')
 def list_keys_cmd():
@@ -135,10 +209,21 @@ def remove_key(key_name):
     Deletes a credential from the OS keychain and registry.
     """
     try:
+        # Check if key exists first
+        existing_key = get_key(key_name)
+        if existing_key is None:
+            raise KeyNotFoundError(key_name)
+        
+        if not click.confirm(f"Are you sure you want to remove '{key_name}' from the vault?"):
+            click.echo("Cancelled.")
+            return
+        
         delete_key(key_name)
-        click.echo(f"Removed {key_name} from vault")
+        click.echo(click.style(f"✓ Removed {key_name} from vault", fg="green"))
+    except (KeyNotFoundError, KeychainDeletionError, InvalidKeyNameError) as e:
+        handle_error(e)
     except Exception as e:
-        click.echo(f"Error removing key: {e}")
+        handle_error(e)
 
 if __name__ == '__main__':
     cli()

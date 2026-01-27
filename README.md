@@ -101,6 +101,40 @@ python backpack.py --help
 
 For detailed usage instructions, see [USAGE.md](USAGE.md).
 
+## Testing
+
+Backpack includes a comprehensive test suite using pytest.
+
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install -r requirements.txt
+
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
+
+# Run specific test file
+pytest tests/test_crypto.py
+
+# Run with verbose output
+pytest -v
+```
+
+### Test Coverage
+
+The test suite covers:
+- ✅ Encryption/decryption operations
+- ✅ Keychain storage and retrieval
+- ✅ Agent lock file management
+- ✅ CLI command execution
+- ✅ Error handling and edge cases
+
+See `htmlcov/index.html` after running with coverage for detailed coverage reports.
+
 ## Project Structure
 
 ```
@@ -108,17 +142,27 @@ backpack/
 ├── backpack.py           # Main CLI entry point
 ├── example_agent.py      # Example agent implementation
 ├── requirements.txt      # Python dependencies
+├── pytest.ini           # Pytest configuration
 ├── README.md            # This file
 ├── USAGE.md             # Usage guide
 ├── ARCHITECTURE.md      # Architecture documentation
 ├── SECURITY.md          # Security considerations
 ├── CONTRIBUTING.md      # Contributing guidelines
-└── src/
-    ├── __init__.py      # Package initialization
-    ├── agent_lock.py    # Agent lock file management
-    ├── cli.py           # CLI command definitions
-    ├── crypto.py        # Encryption/decryption utilities
-    └── keychain.py      # OS keychain integration
+├── LICENSE              # MIT License
+├── .gitignore          # Git ignore rules
+├── src/
+│   ├── __init__.py      # Package initialization
+│   ├── agent_lock.py    # Agent lock file management
+│   ├── cli.py           # CLI command definitions
+│   ├── crypto.py        # Encryption/decryption utilities
+│   └── keychain.py      # OS keychain integration
+└── tests/
+    ├── __init__.py      # Test package initialization
+    ├── conftest.py      # Pytest fixtures and configuration
+    ├── test_crypto.py   # Encryption/decryption tests
+    ├── test_keychain.py # Keychain operation tests
+    ├── test_agent_lock.py # Agent lock file tests
+    └── test_cli.py      # CLI command tests
 ```
 
 ## Architecture
