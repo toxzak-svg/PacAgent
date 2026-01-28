@@ -8,9 +8,9 @@ import pytest
 import tempfile
 import shutil
 from click.testing import CliRunner
-from src.cli import cli
-from src.agent_lock import AgentLock
-from src.keychain import store_key, register_key, delete_key
+from backpack.cli import cli
+from backpack.agent_lock import AgentLock
+from backpack.keychain import store_key, register_key, delete_key
 
 
 class TestCLIInit:
@@ -265,6 +265,99 @@ class TestCLIHelp:
         
         assert result.exit_code == 0
         assert "Manage keys in personal vault" in result.output
+
+    def test_quickstart_help(self):
+        """Test quickstart command help."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['quickstart', '--help'])
+        assert result.exit_code == 0
+        assert "quickstart" in result.output and "Interactive" in result.output
+
+    def test_template_help(self):
+        """Test template command help."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['template', '--help'])
+        assert result.exit_code == 0
+        assert "template" in result.output
+
+    def test_demo_help(self):
+        """Test demo command help."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['demo', '--help'])
+        assert result.exit_code == 0
+        assert "demo" in result.output
+
+
+class TestCLIQuickstart:
+    """Tests for quickstart command."""
+
+    def test_quickstart_non_interactive(self, mock_keyring, temp_dir):
+        """Test quickstart with --non-interactive creates agent.lock and agent.py."""
+        runner = CliRunner()
+        original_dir = os.getcwd()
+        try:
+            os.chdir(temp_dir)
+            result = runner.invoke(cli, ['quickstart', '--non-interactive'])
+            assert result.exit_code == 0
+            assert os.path.exists('agent.lock')
+            assert os.path.exists('agent.py')
+            assert "Next steps" in result.output
+            agent_lock = AgentLock()
+            agent_lock.master_key = "default-key"
+            data = agent_lock.read()
+            assert data is not None
+            assert "OPENAI_API_KEY" in data["credentials"]
+        finally:
+            os.chdir(original_dir)
+
+
+class TestCLITemplate:
+    """Tests for template list and use."""
+
+    def test_template_list(self):
+        """Test template list shows available templates."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['template', 'list'])
+        assert result.exit_code == 0
+        assert "financial_analyst" in result.output or "code_reviewer" in result.output or "twitter_bot" in result.output
+
+    def test_template_use(self, mock_keyring, temp_dir):
+        """Test template use creates agent.lock and agent.py from template."""
+        runner = CliRunner()
+        original_dir = os.getcwd()
+        try:
+            os.chdir(temp_dir)
+            result = runner.invoke(cli, ['template', 'use', 'financial_analyst'])
+            assert result.exit_code == 0
+            assert os.path.exists('agent.lock')
+            assert os.path.exists('agent.py')
+            assert "OPENAI_API_KEY" in result.output
+            agent_lock = AgentLock()
+            agent_lock.master_key = "default-key"
+            data = agent_lock.read()
+            assert data is not None
+            assert "OPENAI_API_KEY" in data["credentials"]
+        finally:
+            os.chdir(original_dir)
+
+    def test_template_use_invalid(self):
+        """Test template use with invalid name exits with error."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['template', 'use', 'nonexistent_template_xyz'])
+        assert result.exit_code == 1
+        assert "not found" in result.output or "Template" in result.output
+
+
+class TestCLIDemo:
+    """Tests for demo command."""
+
+    def test_demo_runs(self):
+        """Test demo command runs and shows before/after content."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ['demo', '--fast'])
+        assert result.exit_code == 0
+        assert "BEFORE" in result.output and "AFTER" in result.output
+        assert "JIT" in result.output or "injection" in result.output.lower()
 
 
 class TestCLIIntegration:

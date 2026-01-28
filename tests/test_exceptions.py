@@ -3,7 +3,7 @@ Tests for custom exception classes.
 """
 
 import pytest
-from src.exceptions import (
+from backpack.exceptions import (
     BackpackError, CryptoError, DecryptionError, EncryptionError,
     KeychainError, KeyNotFoundError, AgentLockError,
     AgentLockNotFoundError, ValidationError, InvalidPasswordError

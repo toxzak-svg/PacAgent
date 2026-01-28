@@ -1,14 +1,51 @@
 # Backpack: Encrypted Agent Container System
 
+[![PyPI version](https://badge.fury.io/py/backpack-agent.svg)](https://badge.fury.io/py/backpack-agent)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
+
 **Backpack** is a secure, portable system for managing AI agents with encrypted state, credentials, and personality configurations. It solves the "Naked Agent" problem by providing a unified container format that travels with your agent code in version control.
+
+## Why Backpack?
+
+| Pain point | Without Backpack | With Backpack |
+|------------|------------------|---------------|
+| **Credentials** | Scattered in `.env`, dashboards, or copy-paste | One vault; JIT injection with one prompt per key |
+| **Sharing agents** | "Clone repo, then manually add keys and config" | Clone → `backpack run agent.py` → allow keys when prompted |
+| **Personality/config** | Hardcoded or random config files | Version-controlled in `agent.lock` with the code |
+| **Secrets on disk** | `.env` or config in plain text | Keys only in OS keychain; never plain text in repo |
+| **Time to first run** | Find keys, create `.env`, restart | `backpack quickstart` → add keys → run in minutes |
+
+## Quick Start (3 steps)
+
+```bash
+pip install backpack-agent
+backpack quickstart          # Interactive wizard: name, credentials, personality
+backpack key add OPENAI_API_KEY   # Add your keys when prompted
+backpack run agent.py        # Run with JIT injection
+```
+
+Or use a ready-made template:
+
+```bash
+backpack template list
+backpack template use financial_analyst
+backpack key add OPENAI_API_KEY
+backpack run agent.py
+```
+
+See [Quick Start](#quick-start) below for more options.
 
 ## Table of Contents
 
+- [Why Backpack?](#why-backpack)
+- [Quick Start (3 steps)](#quick-start-3-steps)
 - [The Problem](#the-problem-the-naked-agent)
 - [The Solution](#the-solution-encrypted-agent-containers)
 - [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Templates & Examples](#templates--examples)
 - [Project Structure](#project-structure)
 - [Architecture](#architecture)
 - [Documentation](#documentation)
@@ -64,42 +101,79 @@ Backpack creates an `agent.lock` file that travels with the agent's code in the 
 - Python 3.7+
 - pip
 
+### Install from PyPI (recommended)
+
+```bash
+pip install backpack-agent
+```
+
 ### Install from Source
 
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd backpack
-
-# Install dependencies
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ### Verify Installation
 
 ```bash
-python backpack.py --help
+backpack --help
 ```
 
 ## Quick Start
 
-1. **Add keys to your personal vault:**
-   ```bash
-   python backpack.py key add OPENAI_API_KEY
-   python backpack.py key add TWITTER_TOKEN
-   ```
+**Option A – Interactive wizard (fastest):**
 
-2. **Initialize an agent:**
-   ```bash
-   python backpack.py init --credentials "OPENAI_API_KEY,TWITTER_TOKEN" --personality "You are a senior financial analyst. Use a formal tone."
-   ```
+```bash
+backpack quickstart
+# Answer: agent name, credentials (e.g. OPENAI_API_KEY), personality
+backpack key add OPENAI_API_KEY   # and any other keys
+backpack run agent.py
+```
 
-3. **Run the agent:**
-   ```bash
-   python backpack.py run example_agent.py
-   ```
+**Option B – Manual init:**
 
-For detailed usage instructions, see [USAGE.md](USAGE.md).
+```bash
+backpack key add OPENAI_API_KEY
+backpack key add TWITTER_TOKEN
+backpack init --credentials "OPENAI_API_KEY,TWITTER_TOKEN" --personality "You are a senior financial analyst. Use a formal tone."
+backpack run example_agent.py
+```
+
+**Option C – Use a template:**
+
+```bash
+backpack template list
+backpack template use financial_analyst   # or twitter_bot, code_reviewer
+backpack key add OPENAI_API_KEY
+backpack run agent.py
+```
+
+**See the value in 30 seconds:**
+
+```bash
+backpack demo
+```
+
+For detailed usage, see [USAGE.md](USAGE.md).
+
+## Templates & Examples
+
+Ready-made agents you can run immediately:
+
+| Template | Description |
+|----------|-------------|
+| `financial_analyst` | Formal, data-driven analyst persona; uses `OPENAI_API_KEY` |
+| `twitter_bot` | Friendly Twitter bot; uses `OPENAI_API_KEY`, `TWITTER_BEARER_TOKEN` |
+| `code_reviewer` | Constructive code review; uses `OPENAI_API_KEY` |
+
+```bash
+backpack template list
+backpack template use <name>
+```
+
+Each template includes a README and a runnable `agent.py` you can customize.
 
 ## Testing
 
@@ -139,7 +213,6 @@ See `htmlcov/index.html` after running with coverage for detailed coverage repor
 
 ```
 backpack/
-├── backpack.py           # Main CLI entry point
 ├── example_agent.py      # Example agent implementation
 ├── requirements.txt      # Python dependencies
 ├── pytest.ini           # Pytest configuration
@@ -151,11 +224,14 @@ backpack/
 ├── LICENSE              # MIT License
 ├── .gitignore          # Git ignore rules
 ├── src/
-│   ├── __init__.py      # Package initialization
-│   ├── agent_lock.py    # Agent lock file management
-│   ├── cli.py           # CLI command definitions
-│   ├── crypto.py        # Encryption/decryption utilities
-│   └── keychain.py      # OS keychain integration
+│   └── backpack/
+│       ├── __init__.py
+│       ├── agent_lock.py
+│       ├── cli.py
+│       ├── crypto.py
+│       ├── exceptions.py
+│       ├── keychain.py
+│       └── templates/
 └── tests/
     ├── __init__.py      # Test package initialization
     ├── conftest.py      # Pytest fixtures and configuration

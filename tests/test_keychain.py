@@ -4,7 +4,7 @@ Tests for keychain module - OS keychain integration.
 
 import pytest
 import json
-from src.keychain import (
+from backpack.keychain import (
     store_key, get_key, list_keys, register_key, delete_key,
     SERVICE_NAME
 )

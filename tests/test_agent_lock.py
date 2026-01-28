@@ -5,7 +5,7 @@ Tests for agent_lock module - agent lock file management.
 import os
 import json
 import pytest
-from src.agent_lock import AgentLock
+from backpack.agent_lock import AgentLock
 
 
 class TestAgentLockInit:

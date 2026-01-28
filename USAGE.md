@@ -2,28 +2,49 @@
 
 ## Quick Start
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Option A: Interactive wizard (recommended)
 
-2. **Add keys to your personal vault:**
-   ```bash
-   python backpack.py key add OPENAI_API_KEY
-   python backpack.py key add TWITTER_TOKEN
-   ```
+```bash
+pip install backpack-agent
+backpack quickstart
+backpack key add OPENAI_API_KEY
+backpack run agent.py
+```
 
-3. **Initialize an agent:**
-   ```bash
-   python backpack.py init --credentials "OPENAI_API_KEY,TWITTER_TOKEN" --personality "You are a senior financial analyst. Use a formal tone."
-   ```
+### Option B: Use a ready-made template
 
-4. **Run the agent:**
-   ```bash
-   python backpack.py run example_agent.py
-   ```
+```bash
+backpack template list
+backpack template use financial_analyst
+backpack key add OPENAI_API_KEY
+backpack run agent.py
+```
+
+### Option C: Manual init
+
+```bash
+backpack key add OPENAI_API_KEY
+backpack init --credentials "OPENAI_API_KEY" --personality "Helpful assistant"
+backpack run agent.py
+```
+
+### See the value in 30 seconds
+
+```bash
+backpack demo
+```
 
 ## Commands Reference
+
+### `quickstart` - Interactive Wizard
+
+Creates an `agent.lock` and a starter `agent.py` in the current directory.
+
+**Syntax:**
+
+```bash
+backpack quickstart [--non-interactive]
+```
 
 ### `init` - Create New Agent Lock
 
@@ -31,7 +52,7 @@ Creates a new `agent.lock` file with encrypted credentials, personality, and mem
 
 **Syntax:**
 ```bash
-python backpack.py init [OPTIONS]
+backpack init [OPTIONS]
 ```
 
 **Options:**
@@ -41,13 +62,13 @@ python backpack.py init [OPTIONS]
 **Examples:**
 ```bash
 # Basic initialization
-python backpack.py init --credentials "OPENAI_API_KEY" --personality "Helpful assistant"
+backpack init --credentials "OPENAI_API_KEY" --personality "Helpful assistant"
 
 # Multiple credentials
-python backpack.py init --credentials "OPENAI_API_KEY,ANTHROPIC_API_KEY,GOOGLE_API_KEY" --personality "Multi-model AI agent"
+backpack init --credentials "OPENAI_API_KEY,ANTHROPIC_API_KEY,GOOGLE_API_KEY" --personality "Multi-model AI agent"
 
 # Personality only (no credentials)
-python backpack.py init --personality "You are a creative writing assistant"
+backpack init --personality "You are a creative writing assistant"
 ```
 
 ### `run` - Run Agent with JIT Injection
@@ -56,19 +77,19 @@ Runs an agent script with just-in-time variable injection from the keychain.
 
 **Syntax:**
 ```bash
-python backpack.py run <script_path>
+backpack run <script_path>
 ```
 
 **Examples:**
 ```bash
 # Run example agent
-python backpack.py run example_agent.py
+backpack run example_agent.py
 
 # Run custom agent
-python backpack.py run my_agent.py
+backpack run my_agent.py
 
 # Run agent in subdirectory
-python backpack.py run agents/financial_analyst.py
+backpack run agents/financial_analyst.py
 ```
 
 **What happens:**
@@ -88,24 +109,24 @@ Manage credentials in your personal OS keychain.
 
 **Syntax:**
 ```bash
-python backpack.py key add <key_name> [--value TEXT]
+backpack key add <key_name> [--value TEXT]
 ```
 
 **Examples:**
 ```bash
 # Interactive prompt (recommended)
-python backpack.py key add OPENAI_API_KEY
+backpack key add OPENAI_API_KEY
 # Enter value: [hidden input]
 
 # Non-interactive (for scripts)
-python backpack.py key add OPENAI_API_KEY --value "sk-..."
+backpack key add OPENAI_API_KEY --value "sk-..."
 ```
 
 #### `key list` - List Keys in Vault
 
 **Syntax:**
 ```bash
-python backpack.py key list
+backpack key list
 ```
 
 **Output:**
@@ -120,12 +141,29 @@ Keys in vault:
 
 **Syntax:**
 ```bash
-python backpack.py key remove <key_name>
+backpack key remove <key_name>
 ```
 
 **Examples:**
 ```bash
-python backpack.py key remove OPENAI_API_KEY
+backpack key remove OPENAI_API_KEY
+```
+
+### `template` - Agent Template Library
+
+Use ready-made agent templates.
+
+```bash
+backpack template list
+backpack template use <name> [--dir PATH]
+```
+
+### `demo` - Visual Demo
+
+Prints a short before/after walkthrough explaining Backpack’s value.
+
+```bash
+backpack demo [--fast]
 ```
 
 ## Use Cases
@@ -138,7 +176,7 @@ python backpack.py key remove OPENAI_API_KEY
 
 1. **Create the agent:**
    ```bash
-   python backpack.py init --credentials "OPENAI_API_KEY,ALPHA_VANTAGE_API_KEY" --personality "You are a senior financial analyst specializing in market trends."
+   backpack init --credentials "OPENAI_API_KEY,ALPHA_VANTAGE_API_KEY" --personality "You are a senior financial analyst specializing in market trends."
    ```
 
 2. **Commit to Git:**
@@ -156,13 +194,13 @@ python backpack.py key remove OPENAI_API_KEY
 
 4. **Team member adds their keys:**
    ```bash
-   python backpack.py key add OPENAI_API_KEY
-   python backpack.py key add ALPHA_VANTAGE_API_KEY
+   backpack key add OPENAI_API_KEY
+   backpack key add ALPHA_VANTAGE_API_KEY
    ```
 
 5. **Team member runs agent:**
    ```bash
-   python backpack.py run example_agent.py
+   backpack run example_agent.py
    # Prompts for consent, then runs with their keys
    ```
 
@@ -181,22 +219,22 @@ python backpack.py key remove OPENAI_API_KEY
 1. **Development:**
    ```bash
    export AGENT_MASTER_KEY="dev-master-key-123"
-   python backpack.py init --credentials "OPENAI_API_KEY" --personality "Dev agent"
-   python backpack.py key add OPENAI_API_KEY  # Dev key
+   backpack init --credentials "OPENAI_API_KEY" --personality "Dev agent"
+   backpack key add OPENAI_API_KEY  # Dev key
    ```
 
 2. **Staging:**
    ```bash
    export AGENT_MASTER_KEY="staging-master-key-456"
-   python backpack.py init --credentials "OPENAI_API_KEY" --personality "Staging agent"
-   python backpack.py key add OPENAI_API_KEY  # Staging key
+   backpack init --credentials "OPENAI_API_KEY" --personality "Staging agent"
+   backpack key add OPENAI_API_KEY  # Staging key
    ```
 
 3. **Production:**
    ```bash
    export AGENT_MASTER_KEY="prod-master-key-789"
-   python backpack.py init --credentials "OPENAI_API_KEY" --personality "Production agent"
-   python backpack.py key add OPENAI_API_KEY  # Prod key
+   backpack init --credentials "OPENAI_API_KEY" --personality "Production agent"
+   backpack key add OPENAI_API_KEY  # Prod key
    ```
 
 **Benefits:**
@@ -212,7 +250,7 @@ python backpack.py key remove OPENAI_API_KEY
 ```python
 import os
 import json
-from src.agent_lock import AgentLock
+from backpack.agent_lock import AgentLock
 
 def main():
     agent_lock = AgentLock()
@@ -243,7 +281,7 @@ if __name__ == '__main__':
 
 **Usage:**
 ```bash
-python backpack.py run stateful_agent.py
+backpack run stateful_agent.py
 # First run: Session #1, Last run: Never
 # Second run: Session #2, Last run: 2024-01-15 10:30:00
 ```
@@ -261,7 +299,7 @@ python backpack.py run stateful_agent.py
 
 1. **Update personality:**
    ```python
-   from src.agent_lock import AgentLock
+   from backpack.agent_lock import AgentLock
    
    agent_lock = AgentLock()
    agent_data = agent_lock.read()
@@ -303,7 +341,7 @@ Set a custom master key for encryption:
 
 ```bash
 export AGENT_MASTER_KEY="my-strong-master-key-12345"
-python backpack.py init --credentials "KEY1" --personality "Agent"
+backpack init --credentials "KEY1" --personality "Agent"
 ```
 
 **Security Note**: Use a strong, unique master key in production. Never commit master keys to Git.
@@ -313,8 +351,8 @@ python backpack.py init --credentials "KEY1" --personality "Agent"
 Use Backpack programmatically in your Python code:
 
 ```python
-from src.agent_lock import AgentLock
-from src.keychain import get_key, store_key
+from backpack.agent_lock import AgentLock
+from backpack.keychain import get_key, store_key
 
 # Create agent lock
 agent_lock = AgentLock()
@@ -357,11 +395,11 @@ tone = os.environ.get('AGENT_TONE')
 
 ### "No agent.lock found"
 
-**Problem**: Running `backpack.py run` without an `agent.lock` file.
+**Problem**: Running `backpack run` without an `agent.lock` file.
 
 **Solution**: Initialize first:
 ```bash
-python backpack.py init --credentials "KEY1" --personality "Agent"
+backpack init --credentials "KEY1" --personality "Agent"
 ```
 
 ### "Key not found in vault"
@@ -370,7 +408,7 @@ python backpack.py init --credentials "KEY1" --personality "Agent"
 
 **Solution**: Add the key:
 ```bash
-python backpack.py key add KEY_NAME
+backpack key add KEY_NAME
 ```
 
 ### "Decryption failed"

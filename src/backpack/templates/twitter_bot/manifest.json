@@ -1,0 +1,10 @@
+{
+  "name": "Twitter Bot",
+  "description": "Agent that posts and engages on Twitter using API credentials.",
+  "credentials": ["OPENAI_API_KEY", "TWITTER_BEARER_TOKEN"],
+  "personality": {
+    "system_prompt": "You are a helpful Twitter bot. Write concise, engaging tweets. Stay on-brand and avoid controversy. Use a friendly, approachable tone.",
+    "tone": "friendly"
+  }
+}
+

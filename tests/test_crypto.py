@@ -3,8 +3,8 @@ Tests for crypto module - encryption and decryption functionality.
 """
 
 import pytest
-from src.crypto import encrypt_data, decrypt_data, derive_key
-from src.exceptions import (
+from backpack.crypto import encrypt_data, decrypt_data, derive_key
+from backpack.exceptions import (
     DecryptionError, EncryptionError, KeyDerivationError,
     InvalidPasswordError, ValidationError
 )

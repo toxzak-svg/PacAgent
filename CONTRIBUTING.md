@@ -33,12 +33,12 @@ Thank you for your interest in contributing to Backpack! This document provides 
 
 3. **Install dependencies:**
    ```bash
-   pip install -r requirements.txt
+   pip install -e ".[dev]"
    ```
 
 4. **Verify installation:**
    ```bash
-   python backpack.py --help
+   backpack --help
    ```
 
 ## Development Workflow
@@ -67,12 +67,12 @@ Thank you for your interest in contributing to Backpack! This document provides 
 3. **Test your changes:**
    ```bash
    # Test the CLI
-   python backpack.py --help
-   python backpack.py key list
+   backpack --help
+   backpack key list
    
    # Test with example agent
-   python backpack.py init --credentials "TEST_KEY" --personality "Test agent"
-   python backpack.py run example_agent.py
+   backpack init --credentials "TEST_KEY" --personality "Test agent"
+   backpack run example_agent.py
    ```
 
 4. **Commit your changes:**
@@ -144,19 +144,19 @@ Before submitting a pull request, test:
 
 1. **Key management:**
    ```bash
-   python backpack.py key add TEST_KEY
-   python backpack.py key list
-   python backpack.py key remove TEST_KEY
+   backpack key add TEST_KEY
+   backpack key list
+   backpack key remove TEST_KEY
    ```
 
 2. **Agent initialization:**
    ```bash
-   python backpack.py init --credentials "KEY1,KEY2" --personality "Test"
+   backpack init --credentials "KEY1,KEY2" --personality "Test"
    ```
 
 3. **Agent execution:**
    ```bash
-   python backpack.py run example_agent.py
+   backpack run example_agent.py
    ```
 
 4. **Error handling:**
