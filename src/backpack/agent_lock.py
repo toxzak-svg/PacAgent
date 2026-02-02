@@ -97,6 +97,7 @@ class AgentLock:
             with open(self.file_path, "w") as f:
                 json.dump(data, f, indent=2)
             logger.info("Created agent.lock file", extra={"path": self.file_path})
+            self.audit_logger.log_event("lock_created", {"path": self.file_path})
         except PermissionError as e:
             raise AgentLockWriteError(self.file_path, f"Permission denied: {str(e)}") from e
         except OSError as e:
@@ -162,6 +163,7 @@ class AgentLock:
                 "memory": json.loads(decrypt_data(data["layers"]["memory"], self.master_key)),
             }
             logger.debug("Successfully read agent.lock file", extra={"path": self.file_path})
+            self.audit_logger.log_event("lock_read", {"path": self.file_path})
             return result
         except DecryptionError:
             logger.warning("Failed to decrypt agent.lock file", extra={"path": self.file_path})
@@ -222,4 +224,3 @@ class AgentLock:
         if "credentials" in agent_data and isinstance(agent_data["credentials"], dict):
             return list(agent_data["credentials"].keys())
         return []
-

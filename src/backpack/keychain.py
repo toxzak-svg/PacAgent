@@ -74,6 +74,7 @@ def store_key(key_name: str, key_value: str) -> None:
     try:
         keyring.set_password(SERVICE_NAME, key_name, key_value)
         logger.info("Stored key in keychain", extra={"service": SERVICE_NAME, "key_name": key_name})
+        audit_logger.log_event("store_key", {"service": SERVICE_NAME, "key_name": key_name})
     except keyring.errors.KeyringError as e:
         raise KeychainStorageError(key_name, f"Keyring error: {str(e)}") from e
     except Exception as e:
@@ -102,6 +103,8 @@ def get_key(key_name: str) -> Optional[str]:
             "Retrieved key from keychain",
             extra={"service": SERVICE_NAME, "key_name": key_name, "found": bool(value)},
         )
+        if value:
+            audit_logger.log_event("get_key", {"service": SERVICE_NAME, "key_name": key_name})
         return value
     except keyring.errors.KeyringError as e:
         raise KeychainAccessError(f"Failed to retrieve key '{key_name}' from keychain", str(e)) from e
@@ -194,4 +197,3 @@ def delete_key(key_name: str) -> None:
         keyring.set_password(SERVICE_NAME, "_registry", json.dumps(registry))
     except Exception:
         pass
-

@@ -5,7 +5,15 @@ Tests for agent_lock module - agent lock file management.
 import os
 import json
 import pytest
+from unittest.mock import patch, MagicMock
 from backpack.agent_lock import AgentLock
+
+
+@pytest.fixture(autouse=True)
+def mock_audit_logger():
+    """Mock the audit logger to prevent file writes and verify calls."""
+    with patch("backpack.agent_lock.AuditLogger") as mock_cls:
+        yield mock_cls.return_value
 
 
 class TestAgentLockInit:
@@ -44,7 +52,7 @@ class TestAgentLockCreate:
     """Tests for creating agent.lock files."""
     
     def test_create_basic(self, test_agent_lock_path, test_master_key, 
-                         sample_credentials, sample_personality, sample_memory):
+                         sample_credentials, sample_personality, sample_memory, mock_audit_logger):
         """Test basic agent.lock file creation."""
         agent_lock = AgentLock(test_agent_lock_path)
         agent_lock.master_key = test_master_key
@@ -61,6 +69,8 @@ class TestAgentLockCreate:
         assert "credentials" in data["layers"]
         assert "personality" in data["layers"]
         assert "memory" in data["layers"]
+        
+        mock_audit_logger.log_event.assert_called_with("lock_created", {"path": test_agent_lock_path})
     
     def test_create_default_memory(self, test_agent_lock_path, test_master_key,
                                   sample_credentials, sample_personality):

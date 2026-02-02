@@ -4,20 +4,32 @@ Tests for keychain module - OS keychain integration.
 
 import pytest
 import json
+from unittest.mock import MagicMock, patch
 from backpack.keychain import (
     store_key, get_key, list_keys, register_key, delete_key,
     SERVICE_NAME
 )
 
 
+@pytest.fixture(autouse=True)
+def mock_audit_logger():
+    """Mock the audit logger to prevent file writes and verify calls."""
+    with patch("backpack.keychain.audit_logger") as mock:
+        yield mock
+
+
 class TestStoreKey:
     """Tests for storing keys in keychain."""
     
-    def test_store_key_basic(self, mock_keyring):
+    def test_store_key_basic(self, mock_keyring, mock_audit_logger):
         """Test basic key storage."""
         store_key("TEST_KEY", "test-value-123")
         
         assert mock_keyring[(SERVICE_NAME, "TEST_KEY")] == "test-value-123"
+        mock_audit_logger.log_event.assert_called_with(
+            "store_key", 
+            {"service": SERVICE_NAME, "key_name": "TEST_KEY"}
+        )
     
     def test_store_key_overwrite(self, mock_keyring):
         """Test overwriting existing key."""
