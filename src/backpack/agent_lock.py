@@ -13,6 +13,7 @@ import logging
 import os
 from typing import Dict, Any, Optional
 
+from .audit import AuditLogger
 from .crypto import encrypt_data, decrypt_data, DecryptionError, EncryptionError
 from .exceptions import (
     AgentLockNotFoundError,
@@ -46,6 +47,7 @@ class AgentLock:
         """
         self.file_path = file_path
         self.master_key = os.environ.get("AGENT_MASTER_KEY", "default-key")
+        self.audit_logger = AuditLogger()
 
     def create(self, credentials: Dict[str, str], personality: Dict[str, str], memory: Dict[str, Any] = None) -> None:
         """
@@ -196,6 +198,7 @@ class AgentLock:
         try:
             agent_data["memory"] = memory
             self.create(agent_data["credentials"], agent_data["personality"], memory)
+            self.audit_logger.log_event("lock_memory_updated", {"path": self.file_path})
         except (ValidationError, EncryptionError, AgentLockWriteError):
             raise
         except Exception as e:
