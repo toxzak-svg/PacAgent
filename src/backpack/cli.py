@@ -15,8 +15,11 @@ import os
 import shutil
 import subprocess
 import sys
+import platform
+import zipfile
 from typing import Dict, List
 
+from . import __version__
 from .agent_lock import AgentLock
 from .keychain import (
     store_key,
@@ -28,7 +31,13 @@ from .keychain import (
     KeychainDeletionError,
     InvalidKeyNameError,
 )
-from .exceptions import BackpackError, ValidationError
+from .exceptions import (
+    BackpackError,
+    ValidationError,
+    KeyNotFoundError,
+    AgentLockNotFoundError,
+    AgentLockReadError
+)
 
 
 def _configure_logging() -> logging.Logger:
@@ -41,7 +50,11 @@ def _configure_logging() -> logging.Logger:
     if not root.handlers:
         level_name = os.environ.get("BACKPACK_LOG_LEVEL", "INFO").upper()
         level = getattr(logging, level_name, logging.INFO)
-        logging.basicConfig(level=level, format="%(levelname)s %(name)s: %(message)s")
+        logging.basicConfig(
+            level=level, 
+            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+            datefmt="%H:%M:%S"
+        )
     return logging.getLogger(__name__)
 
 
@@ -61,6 +74,15 @@ def handle_error(e: Exception, exit_code: int = 1) -> None:
         click.echo(click.style(f"Error: {e.message}", fg="red"), err=True)
         if e.details:
             click.echo(click.style(f"  {e.details}", fg="yellow"), err=True)
+            
+        # Add helpful tips based on exception type
+        if isinstance(e, KeyNotFoundError):
+            click.echo(click.style("  💡 Tip: List available keys with 'backpack key list'", fg="cyan"), err=True)
+        elif isinstance(e, AgentLockNotFoundError):
+            click.echo(click.style("  💡 Tip: Initialize an agent with 'backpack init' or 'backpack quickstart'", fg="cyan"), err=True)
+        elif isinstance(e, AgentLockReadError):
+            click.echo(click.style("  💡 Tip: Check file permissions or if the file is corrupted.", fg="cyan"), err=True)
+            
     elif isinstance(e, click.ClickException):
         raise e
     else:
@@ -68,6 +90,7 @@ def handle_error(e: Exception, exit_code: int = 1) -> None:
         click.echo(click.style(f"Unexpected error: {str(e)}", fg="red"), err=True)
         if hasattr(e, "__cause__") and e.__cause__:
             click.echo(click.style(f"  Caused by: {str(e.__cause__)}", fg="yellow"), err=True)
+        click.echo(click.style("  💡 Tip: Run with BACKPACK_LOG_LEVEL=DEBUG for more details.", fg="cyan"), err=True)
 
     sys.exit(exit_code)
 
@@ -457,6 +480,215 @@ def demo(fast):
     click.echo("    backpack template list # ready-made agents")
     click.echo("    backpack run agent.py  # run with JIT injection")
     click.echo("")
+
+
+@cli.command()
+@click.argument("output_file", required=False)
+def export(output_file):
+    """Export the current agent to a zip file."""
+    if not output_file:
+        output_file = "backpack_agent.zip"
+    
+    if not output_file.endswith(".zip"):
+        output_file += ".zip"
+
+    files_to_export = ["agent.lock", "agent.py", "requirements.txt", "README.md"]
+    found_files = []
+    
+    try:
+        with zipfile.ZipFile(output_file, "w") as zf:
+            for f in files_to_export:
+                if os.path.exists(f):
+                    zf.write(f)
+                    found_files.append(f)
+        
+        if found_files:
+            click.echo(click.style(f"[OK] Exported {len(found_files)} files to {output_file}", fg="green"))
+            for f in found_files:
+                click.echo(f"  - {f}")
+        else:
+            click.echo(click.style("No agent files found to export.", fg="yellow"))
+            # Clean up empty zip
+            if os.path.exists(output_file):
+                os.remove(output_file)
+    except Exception as e:
+        click.echo(click.style(f"Export failed: {e}", fg="red"))
+        sys.exit(1)
+
+
+@cli.command("import")
+@click.argument("input_file")
+@click.option("--dir", "target_dir", default=".", help="Target directory")
+def import_agent(input_file, target_dir):
+    """Import an agent from a zip file."""
+    if not os.path.exists(input_file):
+        click.echo(click.style(f"File {input_file} not found.", fg="red"))
+        sys.exit(1)
+        
+    try:
+        os.makedirs(target_dir, exist_ok=True)
+        with zipfile.ZipFile(input_file, "r") as zf:
+            zf.extractall(target_dir)
+            click.echo(click.style(f"[OK] Imported agent to {target_dir}", fg="green"))
+            click.echo("Files:")
+            for name in zf.namelist():
+                click.echo(f"  - {name}")
+    except zipfile.BadZipFile:
+        click.echo(click.style("Invalid zip file.", fg="red"))
+        sys.exit(1)
+    except Exception as e:
+        click.echo(click.style(f"Import failed: {e}", fg="red"))
+        sys.exit(1)
+
+
+@cli.command()
+def tutorial():
+    """Interactive tutorial to learn Backpack."""
+    click.echo(click.style("\n🎓 Backpack Interactive Tutorial", fg="cyan", bold=True))
+    click.echo("Welcome! This tutorial will guide you through the core concepts.\n")
+    
+    if not click.confirm("Ready to start?", default=True):
+        click.echo("Maybe later! 👋")
+        return
+
+    # Step 1: Concepts
+    click.echo(click.style("\n1. The Problem: The Naked Agent 😱", fg="yellow", bold=True))
+    click.echo("Agents usually have their keys scattered in .env files and config hardcoded.")
+    click.echo("This makes them hard to share and insecure.")
+    click.pause(info="Press any key to continue...")
+
+    # Step 2: Agent Lock
+    click.echo(click.style("\n2. The Solution: agent.lock 🔒", fg="yellow", bold=True))
+    click.echo("Backpack creates an encrypted file that travels with your code.")
+    click.echo("It contains: Credentials (placeholders), Personality, and Memory.")
+    click.pause(info="Press any key to continue...")
+
+    # Step 3: JIT Injection
+    click.echo(click.style("\n3. JIT Variable Injection 💉", fg="yellow", bold=True))
+    click.echo("When you run an agent, Backpack:")
+    click.echo("  a. Reads agent.lock")
+    click.echo("  b. Asks for permission to use keys from your secure vault")
+    click.echo("  c. Injects them directly into the process memory")
+    click.echo("  d. NEVER writes them to disk in plain text")
+    click.pause(info="Press any key to continue...")
+
+    # Step 4: Hands on
+    click.echo(click.style("\n4. Let's try it! 🚀", fg="yellow", bold=True))
+    click.echo("We'll create a dummy agent now.")
+    
+    if click.confirm("Create 'tutorial_agent' directory?"):
+        target_dir = "tutorial_agent"
+        try:
+            os.makedirs(target_dir, exist_ok=True)
+            
+            # Simulate init
+            click.echo(f"\nRunning: backpack init (in {target_dir})")
+            agent_lock = AgentLock(os.path.join(target_dir, "agent.lock"))
+            if not os.path.exists(agent_lock.file_path):
+                 agent_lock.create({"OPENAI_API_KEY": "placeholder"}, {"system_prompt": "You are a student."})
+            click.echo(click.style("[OK] Created agent.lock", fg="green"))
+            
+            click.echo("\nNow you would run: backpack run agent.py")
+            click.echo("And Backpack would ask to inject OPENAI_API_KEY.")
+        except Exception as e:
+             click.echo(click.style(f"Failed to create tutorial agent: {e}", fg="red"))
+        
+    click.echo(click.style("\n🎉 Tutorial Complete!", fg="green", bold=True))
+    click.echo("You are ready to use Backpack.")
+    click.echo("Run 'backpack quickstart' to build your real agent.")
+
+
+@cli.command()
+def status():
+    """Show current agent status."""
+    agent_lock = AgentLock()
+    if not os.path.exists(agent_lock.file_path):
+        click.echo(click.style("No agent.lock found in current directory.", fg="yellow"))
+        return
+
+    try:
+        data = agent_lock.read()
+        if not data:
+            click.echo(click.style("agent.lock is corrupted or unreadable.", fg="red"))
+            return
+
+        click.echo(click.style(f"Agent Status ({agent_lock.file_path})", fg="cyan", bold=True))
+        
+        # File info
+        stat = os.stat(agent_lock.file_path)
+        click.echo(f"  Size: {stat.st_size} bytes")
+        
+        # Layers
+        click.echo("\n  Layers:")
+        creds = data.get("credentials", {})
+        click.echo(f"    - Credentials: {len(creds)} keys defined")
+        for k in creds:
+            click.echo(f"      - {k}")
+            
+        personality = data.get("personality", {})
+        click.echo(f"    - Personality: {len(personality)} items")
+        
+        memory = data.get("memory", {})
+        click.echo(f"    - Memory: {len(memory)} items")
+        
+    except Exception as e:
+        click.echo(click.style(f"Error reading status: {e}", fg="red"))
+
+
+@cli.command()
+def info():
+    """Show system information."""
+    click.echo(click.style("Backpack Information", fg="cyan", bold=True))
+    click.echo(f"  Version: {__version__}")
+    click.echo(f"  Python: {platform.python_version()} ({sys.executable})")
+    click.echo(f"  Platform: {platform.platform()}")
+    click.echo(f"  CWD: {os.getcwd()}")
+
+
+@cli.command()
+def version():
+    """Show version information."""
+    click.echo(f"backpack-agent version {__version__}")
+
+
+@cli.command()
+def doctor():
+    """Check for common issues."""
+    click.echo(click.style("Running Backpack Doctor...", fg="cyan", bold=True))
+    issues = []
+    
+    # Check Python version
+    py_ver = sys.version_info
+    if py_ver < (3, 7):
+        issues.append("Python version is too old. Backpack requires 3.7+")
+    else:
+        click.echo("  [OK] Python version")
+        
+    # Check keyring
+    try:
+        import keyring
+        try:
+            keyring.get_keyring()
+            click.echo("  [OK] Keyring backend found")
+        except Exception as e:
+            issues.append(f"Keyring error: {e}")
+    except ImportError:
+        issues.append("keyring library not installed")
+        
+    # Check cryptography
+    try:
+        import cryptography
+        click.echo(f"  [OK] Cryptography library ({cryptography.__version__})")
+    except ImportError:
+        issues.append("cryptography library not installed")
+        
+    if issues:
+        click.echo(click.style("\nIssues found:", fg="red", bold=True))
+        for issue in issues:
+            click.echo(f"  - {issue}")
+        sys.exit(1)
+    else:
+        click.echo(click.style("\nEverything looks good! 🎒", fg="green", bold=True))
 
 
 if __name__ == "__main__":
