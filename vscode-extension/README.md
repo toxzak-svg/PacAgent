@@ -16,7 +16,7 @@ This extension provides integration with the [Backpack Agent Container System](h
 
 - **Backpack CLI**: You must have the `backpack` CLI installed and available in your PATH or current environment.
   ```bash
-  pip install backpack
+  pip install backpack-agent
   ```
 
 ## Usage

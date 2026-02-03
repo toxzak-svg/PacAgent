@@ -131,9 +131,12 @@ class TestCLIRun:
             
             # Try to run (should prompt for missing key)
             result = runner.invoke(cli, ['run', 'example_agent.py'], input='n\n')
-            
+
             # Should indicate key not found
-            assert "not found in vault" in result.output or "Access denied" in result.output
+            assert (
+                "not found in environment, agent.lock, or vault" in result.output
+                or "Access denied" in result.output
+            )
         finally:
             os.chdir(original_dir)
     

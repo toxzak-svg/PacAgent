@@ -12,6 +12,7 @@ from backpack.cli import (
     cli,
     handle_error,
 )
+from backpack.keychain import store_key
 from backpack.exceptions import BackpackError, KeychainDeletionError, KeychainStorageError
 
 
@@ -131,31 +132,29 @@ class TestCLICoverage:
                 result = runner.invoke(cli, ["init"])
                 assert "Unexpected error: Unexpected" in result.output
 
-    def test_run_access_denied(self):
+    def test_run_access_denied(self, clean_env, mock_keyring):
+        if "AGENT_MASTER_KEY" in os.environ:
+            del os.environ["AGENT_MASTER_KEY"]
+            
         runner = CliRunner()
         with runner.isolated_filesystem():
             # Create dummy script
             with open("script.py", "w") as f:
-                f.write("print('hello')")
+                f.write("import os\nprint(os.environ.get('API_KEY'))")
 
-            # Setup agent.lock
-            with open("agent.lock", "w") as f:
-                f.write('{"layers": {"credentials": "enc", "personality": "enc", "memory": "enc"}}')
+            # Store key in vault
+            store_key("API_KEY", "secret_value")
+
+            # Run (deny access)
+            # Init agent
+            # We need API_KEY in credentials so it's in required_keys
+            runner.invoke(cli, ['init', '--credentials', 'API_KEY', '--personality', 'Test'], input='dummy\n')
+
+            result = runner.invoke(cli, ["run", "script.py"], input="n\n")
             
-            with patch('backpack.cli.AgentLock.read') as mock_read, \
-                 patch('backpack.cli.AgentLock.get_required_keys') as mock_keys, \
-                 patch('backpack.cli.get_key') as mock_get_key, \
-                 patch('subprocess.run') as mock_run:
-                
-                mock_read.return_value = {"personality": {"system_prompt": "prompt", "tone": "tone"}}
-                mock_keys.return_value = ["API_KEY"]
-                mock_get_key.return_value = "secret"
-                
-                # Deny access
-                result = runner.invoke(cli, ["run", "script.py"], input="n\n")
-                
-                assert "Access denied for API_KEY" in result.output
-                assert "Running script.py" in result.output
+            assert "Access denied for API_KEY" in result.output
+            assert "Running" in result.output
+            assert "script.py" in result.output
 
     def test_add_key_empty_value(self):
         runner = CliRunner()

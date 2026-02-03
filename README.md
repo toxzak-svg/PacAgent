@@ -1,6 +1,6 @@
 # Backpack: Encrypted Agent Container System
 
-[![PyPI version](https://badge.fury.io/py/backpack-agent.svg)](https://badge.fury.io/py/backpack-agent)
+[![PyPI version](https://badge.fury.io/py/backpack-agent.svg)](https://pypi.org/project/backpack-agent/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 
@@ -20,7 +20,7 @@
 ## Quick Start (3 steps)
 
 ```bash
-pip install backpack
+pip install backpack-agent
 backpack quickstart          # Interactive wizard: name, credentials, personality
 backpack key add OPENAI_API_KEY   # Add your keys when prompted
 backpack run agent.py        # Run with JIT injection
@@ -106,7 +106,7 @@ Backpack creates an `agent.lock` file that travels with the agent's code in the 
 ### Install from PyPI (recommended)
  
  ```bash
- pip install backpack
+ pip install backpack-agent
  ```
 
 ### Install from Source
