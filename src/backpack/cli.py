@@ -654,17 +654,38 @@ def tutorial():
 
 
 @cli.command()
-def status():
+@click.option("--json", "json_output", is_flag=True, help="Output in JSON format")
+def status(json_output):
     """Show current agent status."""
     agent_lock = AgentLock()
     if not os.path.exists(agent_lock.file_path):
-        click.echo(click.style("No agent.lock found in current directory.", fg="yellow"))
+        if json_output:
+            click.echo(json.dumps({"error": "No agent.lock found"}))
+        else:
+            click.echo(click.style("No agent.lock found in current directory.", fg="yellow"))
         return
 
     try:
         data = agent_lock.read()
         if not data:
-            click.echo(click.style("agent.lock is corrupted or unreadable.", fg="red"))
+            if json_output:
+                click.echo(json.dumps({"error": "agent.lock is corrupted or unreadable"}))
+            else:
+                click.echo(click.style("agent.lock is corrupted or unreadable.", fg="red"))
+            return
+
+        if json_output:
+            # Return pure data for machine consumption
+            output = {
+                "file_path": agent_lock.file_path,
+                "size": os.stat(agent_lock.file_path).st_size,
+                "layers": {
+                    "credentials": list(data.get("credentials", {}).keys()),
+                    "personality": data.get("personality", {}),
+                    "memory": data.get("memory", {})
+                }
+            }
+            click.echo(json.dumps(output, indent=2))
             return
 
         click.echo(click.style(f"Agent Status ({agent_lock.file_path})", fg="cyan", bold=True))
@@ -687,7 +708,10 @@ def status():
         click.echo(f"    - Memory: {len(memory)} items")
         
     except Exception as e:
-        click.echo(click.style(f"Error reading status: {e}", fg="red"))
+        if json_output:
+            click.echo(json.dumps({"error": str(e)}))
+        else:
+            click.echo(click.style(f"Error reading status: {e}", fg="red"))
 
 
 @cli.command()

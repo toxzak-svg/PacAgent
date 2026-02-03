@@ -1,0 +1,75 @@
+{
+  "name": "backpack-vscode",
+  "displayName": "Backpack",
+  "description": "Backpack Agent Container System Integration",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "backpack.init",
+        "title": "Backpack: Init"
+      },
+      {
+        "command": "backpack.run",
+        "title": "Backpack: Run"
+      },
+      {
+        "command": "backpack.addKey",
+        "title": "Backpack: Add Key"
+      },
+      {
+        "command": "backpack.listKeys",
+        "title": "Backpack: List Keys"
+      },
+      {
+        "command": "backpack.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "backpack.refresh",
+          "when": "view == backpack-sidebar",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "backpack-sidebar",
+          "title": "Backpack",
+          "icon": "$(briefcase)"
+        }
+      ]
+    },
+    "views": {
+      "backpack-sidebar": [
+        {
+          "id": "backpack-status",
+          "name": "Status"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.1.0"
+  }
+}
