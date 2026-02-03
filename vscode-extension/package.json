@@ -38,6 +38,10 @@
         "command": "backpack.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "backpack.editPersonality",
+        "title": "Backpack: Edit Personality"
       }
     ],
     "menus": {

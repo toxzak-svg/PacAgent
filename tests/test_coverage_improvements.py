@@ -65,16 +65,19 @@ class TestCLICoverage:
 
     def test_rotate_command_not_found(self):
         runner = CliRunner()
-        with runner.isolated_filesystem():
+        # Optimize: Mock os.path.exists instead of using isolated_filesystem
+        with patch("os.path.exists", return_value=False):
             result = runner.invoke(cli, ["rotate", "--key-file", "missing.lock"])
             assert result.exit_code == 1
             assert "not found" in result.output
 
     def test_rotate_command_decrypt_fail(self):
         runner = CliRunner()
-        with runner.isolated_filesystem():
-             with open("agent.lock", "w") as f:
-                 f.write("junk")
+        # Optimize: Mock AgentLock.read to return None (simulation of decrypt failure)
+        # and mock os.path.exists to return True so we pass the file check.
+        # This avoids creating files and running crypto.
+        with patch("backpack.cli.AgentLock.read", return_value=None), \
+             patch("os.path.exists", return_value=True):
              
              result = runner.invoke(cli, ["rotate"], env={"AGENT_MASTER_KEY": "wrong"})
              assert result.exit_code == 1
@@ -82,11 +85,21 @@ class TestCLICoverage:
 
     def test_rotate_command_empty_key(self):
         runner = CliRunner()
-        with runner.isolated_filesystem():
-            agent_lock = AgentLock(master_key="old-key")
-            agent_lock.create({}, {})
+        # Optimize: Mock AgentLock.read to return valid data (avoiding crypto setup)
+        # Mock click.prompt to return empty string immediately (avoiding loop and timeout)
+        # Mock os.path.exists to return True.
+        
+        mock_data = {
+            "credentials": {}, 
+            "personality": {"system_prompt": "sys", "tone": "tone"}, 
+            "memory": {}
+        }
+        
+        with patch("backpack.cli.AgentLock.read", return_value=mock_data), \
+             patch("os.path.exists", return_value=True), \
+             patch("click.prompt", return_value=""):
             
-            result = runner.invoke(cli, ["rotate"], input="\n\n", env={"AGENT_MASTER_KEY": "old-key"})
+            result = runner.invoke(cli, ["rotate"], env={"AGENT_MASTER_KEY": "old-key"})
             assert result.exit_code == 1
             assert "Key cannot be empty" in result.output
 

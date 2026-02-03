@@ -555,6 +555,51 @@ def template_use(name, target_dir):
     click.echo("")
 
 
+@cli.group()
+def config():
+    """Manage agent configuration."""
+
+
+@config.command("personality")
+@click.option("--system-prompt", help="New system prompt")
+@click.option("--tone", help="New tone (e.g., professional, friendly)")
+def config_personality(system_prompt, tone):
+    """
+    Update agent personality.
+    """
+    agent_lock = AgentLock()
+    if not os.path.exists(agent_lock.file_path):
+        click.echo(click.style("No agent.lock found.", fg="red"))
+        sys.exit(1)
+    
+    try:
+        # Read current personality to preserve existing values if only one is updated
+        current_data = agent_lock.read()
+        if not current_data:
+             click.echo(click.style("Failed to read agent.lock", fg="red"))
+             sys.exit(1)
+             
+        current_personality = current_data.get("personality", {})
+        
+        new_personality = current_personality.copy()
+        if system_prompt:
+            new_personality["system_prompt"] = system_prompt
+        if tone:
+            new_personality["tone"] = tone
+            
+        if new_personality == current_personality:
+            click.echo("No changes specified.")
+            return
+
+        agent_lock.update_personality(new_personality)
+        click.echo(click.style("[OK] Updated personality", fg="green"))
+        
+    except BackpackError as e:
+        handle_error(e)
+    except Exception as e:
+        handle_error(e)
+
+
 @cli.command()
 @click.option("--fast", is_flag=True, help="Skip pauses (for scripting)")
 def demo(fast):

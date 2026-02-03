@@ -33,6 +33,19 @@ export class BackpackCliWrapper {
         return JSON.parse(output);
     }
 
+    public async updatePersonality(systemPrompt?: string, tone?: string): Promise<void> {
+        let args = 'config personality';
+        if (systemPrompt) {
+            const escaped = systemPrompt.replace(/"/g, '\\"');
+            args += ` --system-prompt "${escaped}"`;
+        }
+        if (tone) {
+            const escaped = tone.replace(/"/g, '\\"');
+            args += ` --tone "${escaped}"`;
+        }
+        await this.execute(args);
+    }
+
     private execute(args: string): Promise<string> {
         return new Promise((resolve, reject) => {
             cp.exec(`backpack ${args}`, { cwd: this.cwd }, (err, stdout, stderr) => {

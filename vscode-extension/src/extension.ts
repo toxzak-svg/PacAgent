@@ -53,6 +53,43 @@ export async function activate(context: vscode.ExtensionContext) {
         }),
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('backpack.editPersonality', async () => {
+            try {
+                const status = await backpack.getStatus();
+                const personality = status.layers.personality || {};
+                const currentSystemPrompt = personality['system_prompt'] || '';
+                const currentTone = personality['tone'] || '';
+
+                const systemPrompt = await vscode.window.showInputBox({
+                    prompt: 'Enter System Prompt',
+                    value: currentSystemPrompt,
+                    placeHolder: 'You are a helpful assistant...',
+                });
+
+                if (systemPrompt === undefined) {
+                    return; // Canceled
+                }
+
+                const tone = await vscode.window.showInputBox({
+                    prompt: 'Enter Tone',
+                    value: currentTone,
+                    placeHolder: 'professional',
+                });
+
+                if (tone === undefined) {
+                    return; // Canceled
+                }
+
+                await backpack.updatePersonality(systemPrompt, tone);
+                vscode.window.showInformationMessage('Personality updated!');
+                treeDataProvider.refresh();
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to update personality: ${error}`);
+            }
+        }),
+    );
+
     // Check version
     try {
         const version = await backpack.getVersion();
