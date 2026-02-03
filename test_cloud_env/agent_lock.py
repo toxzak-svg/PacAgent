@@ -1,0 +1,8 @@
+
+import os
+import sys
+val = os.environ.get("TEST_LOCK_KEY")
+if val:
+    print(f"FOUND: {val}")
+else:
+    print("NOT FOUND")

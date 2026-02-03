@@ -294,7 +294,8 @@ def rotate(new_key, key_file):
 
 @cli.command()
 @click.argument("script_path")
-def run(script_path):
+@click.option("--non-interactive", is_flag=True, help="Skip prompts (auto-approve keys) - enabled automatically if AGENT_MASTER_KEY is set")
+def run(script_path, non_interactive):
     """
     Run an agent with JIT variable injection.
     """
@@ -304,18 +305,70 @@ def run(script_path):
     if not agent_data:
         raise click.ClickException("No agent.lock found. Run 'backpack init' first.")
 
+    # Detect Cloud/Non-interactive mode
+    # We assume non-interactive if the flag is passed OR if AGENT_MASTER_KEY is explicitly set
+    # (implying a managed environment like Vercel/Railway)
+    is_cloud_mode = non_interactive or (os.environ.get("AGENT_MASTER_KEY") is not None)
+
     env_vars: Dict[str, str] = {}
-    required_keys = agent_lock.get_required_keys()
+    
+    # Get required keys directly from the loaded data
+    creds_layer = agent_data.get("credentials", {})
+    # DEBUG LOG
+    print(f"DEBUG: creds_layer keys: {list(creds_layer.keys())}")
+    print(f"DEBUG: creds_layer values: {creds_layer}")
+    required_keys = list(creds_layer.keys())
 
     for key_name in required_keys:
-        stored_key = get_key(key_name)
-        if stored_key:
-            if click.confirm(f"This agent requires access to {key_name}. Allow access?"):
-                env_vars[key_name] = stored_key
+        value_to_inject = None
+        source = None
+
+        # 1. Check Environment (already set?)
+        if key_name in os.environ:
+            source = "environment"
+        
+        # 2. Check Lock File (Encrypted Portability)
+        # If the value in agent.lock is NOT a placeholder, it's a real encrypted key
+        elif key_name in creds_layer:
+             val = creds_layer[key_name]
+             if val and not val.startswith("placeholder_"):
+                 value_to_inject = val
+                 source = "agent.lock"
+
+        # 3. Check Local Vault (Keychain)
+        if not source and not value_to_inject:
+             stored_key = get_key(key_name)
+             if stored_key:
+                 value_to_inject = stored_key
+                 source = "vault"
+        
+        # Decision Logic
+        if source == "environment":
+             # Already satisfied.
+             if not is_cloud_mode:
+                 click.echo(f"Key {key_name} found in environment.")
+             continue
+        
+        if value_to_inject:
+            if is_cloud_mode:
+                # Cloud/Non-interactive: Auto-approve
+                env_vars[key_name] = value_to_inject
             else:
-                click.echo(f"Access denied for {key_name}. Agent may not function properly.")
+                # Local/Interactive: Prompt user
+                msg = f"This agent requires access to {key_name}"
+                if source == "agent.lock":
+                    msg += " (found in agent.lock)"
+                elif source == "vault":
+                    msg += " (found in vault)"
+                
+                if click.confirm(f"{msg}. Allow access?"):
+                    env_vars[key_name] = value_to_inject
+                else:
+                    click.echo(f"Access denied for {key_name}. Agent may not function properly.")
         else:
-            click.echo(f"Key {key_name} not found in vault. Add it with 'backpack key add {key_name}'")
+            # Key not found anywhere
+            click.echo(f"Key {key_name} not found in environment, agent.lock, or vault.")
+            click.echo(f"  Add it with 'backpack key add {key_name}' or set it as an environment variable.")
 
     env_vars["AGENT_SYSTEM_PROMPT"] = agent_data["personality"]["system_prompt"]
     env_vars["AGENT_TONE"] = agent_data["personality"]["tone"]
