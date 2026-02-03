@@ -1,6 +1,6 @@
 # Backpack VS Code Extension
 
-This extension provides integration with the [Backpack Agent Container System](https://github.com/backpack-agent/backpack).
+This extension provides integration with the [Backpack Agent Container System](https://github.com/asdevllm/backpack).
 
 ## Features
 
