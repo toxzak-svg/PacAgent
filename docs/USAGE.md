@@ -224,37 +224,57 @@ backpack demo [--fast]
 - Personality updates propagate via Git
 - Each team member uses their own keys
 
-### Use Case 2: Multi-Environment Deployment
+### Use Case 2: Multi-Environment Deployment (Cloud/Vercel/Railway)
 
-**Scenario**: Deploy the same agent to development, staging, and production.
+**Scenario**: Deploy the same agent to development, staging, and production (e.g. Vercel, Railway, AWS).
 
-**Steps:**
+**The Workflow:**
+Backpack automatically detects cloud environments when `AGENT_MASTER_KEY` is set. It enters **Non-Interactive Mode**, bypassing user prompts and injecting keys directly.
 
-1. **Development:**
-   ```bash
-   export AGENT_MASTER_KEY="dev-master-key-123"
-   backpack init --credentials "OPENAI_API_KEY" --personality "Dev agent"
-   backpack key add OPENAI_API_KEY  # Dev key
-   ```
+**Deployment Steps:**
 
-2. **Staging:**
-   ```bash
-   export AGENT_MASTER_KEY="staging-master-key-456"
-   backpack init --credentials "OPENAI_API_KEY" --personality "Staging agent"
-   backpack key add OPENAI_API_KEY  # Staging key
-   ```
+1.  **Set the Master Key:**
+    Add `AGENT_MASTER_KEY` to your cloud provider's Environment Variables (e.g. in Vercel Dashboard).
+    ```bash
+    AGENT_MASTER_KEY="prod-master-key-789"
+    ```
 
-3. **Production:**
-   ```bash
-   export AGENT_MASTER_KEY="prod-master-key-789"
-   backpack init --credentials "OPENAI_API_KEY" --personality "Production agent"
-   backpack key add OPENAI_API_KEY  # Prod key
-   ```
+2.  **Provide Credentials (Two Options):**
+
+    *   **Option A: Standard Env Vars (Recommended)**
+        Set `OPENAI_API_KEY` directly in the cloud dashboard. Backpack will detect it and skip the vault lookup.
+
+    *   **Option B: Encrypted Portability (Portable Vault)**
+        Embed the *real* encrypted key into `agent.lock` so it travels with the code.
+        
+        *Local Machine:*
+        ```bash
+        # 1. Temporarily switch to the production master key
+        export AGENT_MASTER_KEY="prod-master-key-789"
+        
+        # 2. Create lock file with REAL keys (not placeholders)
+        backpack init --credentials "OPENAI_API_KEY" --personality "Prod Agent"
+        # (The system will encrypt the keys using the prod master key)
+        
+        # 3. Commit agent.lock
+        git add agent.lock
+        git commit -m "Update prod agent.lock"
+        ```
+        
+        *Cloud Runtime:*
+        Backpack will use the `AGENT_MASTER_KEY` to decrypt the keys embedded in `agent.lock` and inject them.
+
+3.  **Run Command:**
+    Update your start command (e.g. `Procfile` or `start` script):
+    ```bash
+    backpack run agent.py
+    ```
+    (No `--non-interactive` flag needed; it's automatic when `AGENT_MASTER_KEY` is present).
 
 **Benefits:**
-- Same code, different keys per environment
-- Isolated keychains per environment
-- Environment-specific personalities
+- **Zero-Touch Startup**: No human intervention required.
+- **Portable Secrets**: Can ship secrets safely inside `agent.lock` (encrypted) if you prefer not to use dashboard env vars.
+- **Unified Logic**: Same `backpack run` command works locally (interactive) and in cloud (automated).
 
 ### Use Case 3: Stateful Agent with Memory
 

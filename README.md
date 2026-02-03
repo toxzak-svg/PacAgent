@@ -14,6 +14,7 @@
 | **Sharing agents** | "Clone repo, then manually add keys and config" | Clone → `backpack run agent.py` → allow keys when prompted |
 | **Personality/config** | Hardcoded or random config files | Version-controlled in `agent.lock` with the code |
 | **Secrets on disk** | `.env` or config in plain text | Keys only in OS keychain; never plain text in repo |
+| **Cloud Deployment** | Manual env var setup per service | Automated via Master Key & Encrypted Portability |
 | **Time to first run** | Find keys, create `.env`, restart | `backpack quickstart` → add keys → run in minutes |
 
 ## Quick Start (3 steps)
@@ -87,6 +88,7 @@ Backpack creates an `agent.lock` file that travels with the agent's code in the 
 ## Features
 
 - 🔐 **Encrypted State Management**: All agent data is encrypted using PBKDF2 and Fernet
+- ☁️ **Cloud Ready**: Seamless deployment to Vercel/Railway with Master Key support
 - 🔑 **OS Keychain Integration**: Secure credential storage using platform-native keyrings
 - 🚀 **JIT Variable Injection**: Just-in-time credential injection with user consent
 - 📦 **Portable Containers**: `agent.lock` files travel with your code in version control

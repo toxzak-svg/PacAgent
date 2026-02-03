@@ -6,6 +6,7 @@ This extension provides integration with the [Backpack Agent Container System](h
 
 - **Status View**: View the current `agent.lock` status, including defined credentials and personality.
 - **Run with Backpack**: CodeLens to run Python agents with one click, automatically injecting credentials.
+- **Cloud Ready**: Develop locally, deploy to Vercel/Railway with the same `agent.lock`.
 - **Commands**:
   - `Backpack: Init`: Initialize a new agent in the current directory.
   - `Backpack: Run`: Run an agent script with JIT credential injection.
